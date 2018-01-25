@@ -43,7 +43,8 @@
   2008-09-15 (0.1.2):
 
 	* Accelerated introsort. On my Mac (not on another Linux machine),
-	  my implementation is as fast as std::sort on random input.
+	  my implementation is as fast as the C++ standard library's sort()
+	  on random input.
 
 	* Added combsort and in introsort, switch to combsort if the
 	  recursion is too deep.
@@ -63,6 +64,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+// Use our own drand48() symbol (used by ks_shuffle) to avoid portability
+// problems on Windows.  Don't include htslib/hts_os.h for this as it
+// may not get on with older attempts to fix this in code that includes
+// this file.
+extern double hts_drand48(void);
 
 typedef struct {
 	void *left, *right;
@@ -260,7 +267,7 @@ typedef struct {
 		int i, j;														\
 		for (i = n; i > 1; --i) {										\
 			type_t tmp;													\
-			j = (int)(drand48() * i);									\
+			j = (int)(hts_drand48() * i);								\
 			tmp = a[j]; a[j] = a[i-1]; a[i-1] = tmp;					\
 		}																\
 	}
