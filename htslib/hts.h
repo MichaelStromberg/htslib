@@ -579,7 +579,7 @@ static inline int hts_reg2bin(int64_t beg, int64_t end, int min_shift, int n_lvl
 {
     int l, s = min_shift, t = ((1<<((n_lvls<<1) + n_lvls)) - 1) / 7;
     for (--end, l = n_lvls; l > 0; --l, s += 3, t -= 1<<((l<<1)+l))
-        if (beg>>s == end>>s) return t + (beg>>s);
+        if (beg>>s == end>>s) return (int)(t + (beg>>s));
     return 0;
 }
 

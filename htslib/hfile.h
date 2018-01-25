@@ -28,8 +28,14 @@ DEALINGS IN THE SOFTWARE.  */
 #include <string.h>
 
 #include <sys/types.h>
+#include "cross_platform.h"
 
 #include "hts_defs.h"
+
+#ifdef _MSC_VER
+#define off_t __int64
+#include <io.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

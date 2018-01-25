@@ -267,7 +267,7 @@ off_t hseek(hFILE *fp, off_t offset, int whence)
     off_t curpos, pos;
 
     if (writebuffer_is_nonempty(fp)) {
-        int ret = flush_buffer(fp);
+		off_t ret = flush_buffer(fp);
         if (ret < 0) return ret;
     }
 
@@ -329,8 +329,9 @@ void hclose_abruptly(hFILE *fp)
  * File descriptor backend *
  ***************************/
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <sys/socket.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #define HAVE_STRUCT_STAT_ST_BLKSIZE
 #else
@@ -339,7 +340,7 @@ void hclose_abruptly(hFILE *fp)
 #define HAVE_SETMODE
 #endif
 #include <fcntl.h>
-#include <unistd.h>
+
 
 /* For Unix, it doesn't matter whether a file descriptor is a socket.
    However Windows insists on send()/recv() and its own closesocket()
@@ -356,8 +357,8 @@ static ssize_t fd_read(hFILE *fpv, void *buffer, size_t nbytes)
     hFILE_fd *fp = (hFILE_fd *) fpv;
     ssize_t n;
     do {
-        n = fp->is_socket? recv(fp->fd, buffer, nbytes, 0)
-                         : read(fp->fd, buffer, nbytes);
+        n = fp->is_socket? recv(fp->fd, buffer, (int)nbytes, 0)
+                         : read(fp->fd, buffer, (int)nbytes);
     } while (n < 0 && errno == EINTR);
     return n;
 }
@@ -367,8 +368,8 @@ static ssize_t fd_write(hFILE *fpv, const void *buffer, size_t nbytes)
     hFILE_fd *fp = (hFILE_fd *) fpv;
     ssize_t n;
     do {
-        n = fp->is_socket?  send(fp->fd, buffer, nbytes, 0)
-                         : write(fp->fd, buffer, nbytes);
+        n = fp->is_socket?  send(fp->fd, buffer, (int)nbytes, 0)
+                         : write(fp->fd, buffer, (int)nbytes);
     } while (n < 0 && errno == EINTR);
     return n;
 }
@@ -376,7 +377,7 @@ static ssize_t fd_write(hFILE *fpv, const void *buffer, size_t nbytes)
 static off_t fd_seek(hFILE *fpv, off_t offset, int whence)
 {
     hFILE_fd *fp = (hFILE_fd *) fpv;
-    return lseek(fp->fd, offset, whence);
+    return lseek64(fp->fd, offset, whence);
 }
 
 static int fd_flush(hFILE *fpv)
@@ -387,7 +388,11 @@ static int fd_flush(hFILE *fpv)
 #ifdef HAVE_FDATASYNC
         ret = fdatasync(fp->fd);
 #else
-        ret = fsync(fp->fd);
+	#ifndef _MSC_VER
+	        ret = fsync(fp->fd);
+	#else
+			ret = _commit(fp->fd);
+	#endif
 #endif
         // Ignore invalid-for-fsync(2) errors due to being, e.g., a pipe,
         // and operation-not-supported errors (Mac OS X)
@@ -577,6 +582,8 @@ static hFILE *hopen_mem(const char *data, const char *mode)
  * Plugin and hopen() backend dispatcher *
  *****************************************/
 
+#ifdef BOB
+
 #include <ctype.h>
 
 #include "hts_internal.h"
@@ -593,8 +600,11 @@ struct hFILE_plugin_list {
 static struct hFILE_plugin_list *plugins = NULL;
 static pthread_mutex_t plugins_lock = PTHREAD_MUTEX_INITIALIZER;
 
+#endif
+
 static void hfile_exit()
 {
+#ifdef BOB  
     pthread_mutex_lock(&plugins_lock);
 
     kh_destroy(scheme_string, schemes);
@@ -611,7 +621,10 @@ static void hfile_exit()
 
     pthread_mutex_unlock(&plugins_lock);
     pthread_mutex_destroy(&plugins_lock);
+#endif
 }
+
+#ifdef BOB
 
 void hfile_add_scheme_handler(const char *scheme,
                               const struct hFILE_scheme_handler *handler)
@@ -733,13 +746,20 @@ static const struct hFILE_scheme_handler *find_scheme_handler(const char *s)
     return (k != kh_end(schemes))? kh_value(schemes, k) : &unknown_scheme;
 }
 
+#endif
+
 hFILE *hopen(const char *fname, const char *mode)
 {
+#ifdef BOB
     const struct hFILE_scheme_handler *handler = find_scheme_handler(fname);
     if (handler) return handler->open(fname, mode);
-    else if (strcmp(fname, "-") == 0) return hopen_fd_stdinout(mode);
+    else
+#endif
+      if (strcmp(fname, "-") == 0) return hopen_fd_stdinout(mode);
     else return hopen_fd(fname, mode);
 }
+
+#ifdef BOB
 
 int hfile_always_local (const char *fname) { return 0; }
 int hfile_always_remote(const char *fname) { return 1; }
@@ -749,3 +769,5 @@ int hisremote(const char *fname)
     const struct hFILE_scheme_handler *handler = find_scheme_handler(fname);
     return handler? handler->isremote(fname) : 0;
 }
+
+#endif

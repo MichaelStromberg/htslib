@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <zlib.h>
 #include <sys/types.h>
+#include "cross_platform.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -265,7 +266,7 @@ typedef struct __kstring_t {
      * @param level  compression level
      * @return       0 on success and negative on error
      */
-    int bgzf_compress(void *dst, size_t *dlen, const void *src, size_t slen, int level);
+    int bgzf_compress(void *dst, int *dlen, const void *src, int slen, int level);
 
     /*******************
      * bgzidx routines *
