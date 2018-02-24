@@ -28,13 +28,17 @@ DEALINGS IN THE SOFTWARE.  */
 #include <zlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef _MSC_VER
 #include <strings.h>
+#endif
 #include <stdlib.h>
 #include <limits.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <assert.h>
+
+#ifndef _MSC_VER
 
 #include "htslib/hts.h"
 #include "htslib/bgzf.h"
@@ -51,9 +55,11 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/ksort.h"
 
 KHASH_INIT2(s2i,, kh_cstr_t, int64_t, 1, kh_str_hash_func, kh_str_hash_equal)
-
+#else
+#include "htslib/hts_log.h"
+#endif
 int hts_verbose = HTS_LOG_WARNING;
-
+#ifndef _MSC_VER
 const char *hts_version()
 {
     return HTS_VERSION;
@@ -2922,7 +2928,7 @@ enum htsLogLevel hts_get_log_level()
 {
     return hts_verbose;
 }
-
+#endif
 static char get_severity_tag(enum htsLogLevel severity)
 {
     switch (severity) {

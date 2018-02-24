@@ -36,6 +36,10 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/hfile.h"
 #include "hfile_internal.h"
 
+#ifdef _MSC_VER
+#include <signal.h>
+#endif
+
 #ifndef ENOTSUP
 #define ENOTSUP EINVAL
 #endif
@@ -493,7 +497,6 @@ void hclose_abruptly(hFILE *fp)
 #include <sys/stat.h>
 #define HAVE_STRUCT_STAT_ST_BLKSIZE
 #else
-#include <winsock2.h>
 #define HAVE_CLOSESOCKET
 #define HAVE_SETMODE
 #endif
@@ -842,8 +845,10 @@ char *hfile_mem_steal_buffer(hFILE *file, size_t *length) {
     return buf;
 }
 
+#ifdef BOB
 int hfile_plugin_init_mem(struct hFILE_plugin *self)
 {
+
     // mem files are declared remote so they work with a tabix index
     static const struct hFILE_scheme_handler handler =
             {NULL, hfile_always_remote, "mem", 2000 + 50, hopenv_mem};
@@ -851,6 +856,7 @@ int hfile_plugin_init_mem(struct hFILE_plugin *self)
     hfile_add_scheme_handler("mem", &handler);
     return 0;
 }
+#endif
 
 
 /*****************************************
