@@ -201,7 +201,7 @@ int hfile_set_blksize(hFILE *fp, size_t bufsiz) {
     if (bufsiz == 0) bufsiz = 32768;
 
     // Ensure buffer resize will not erase live data
-    if (bufsiz < curr_used)
+    if (bufsiz < (size_t)curr_used)
         return -1;
 
     if (!(buffer = (char *) realloc(fp->buffer, bufsiz))) return -1;
@@ -435,7 +435,7 @@ off_t hseek(hFILE *fp, off_t offset, int whence)
     // so that seeking can be avoided for all (within range) requests.
     else if (! fp->mobile && whence == SEEK_END) {
         size_t length = fp->end - fp->buffer;
-        if (offset > 0 || -offset > length) {
+        if (offset > 0 || -offset > (long long)length) {
             fp->has_errno = errno = EINVAL;
             return -1;
         }
@@ -636,7 +636,7 @@ static hFILE *hpreload(hFILE *fp) {
             char *t = realloc(buf, buf_a);
             if (!t) goto err;
             buf = t;
-            if (buf_inc < 1000000) buf_inc *= 1.3;
+            if (buf_inc < 1000000) buf_inc *= 2;
         }
         len = hread(fp, buf+buf_sz, buf_a-buf_sz);
         if (len > 0)

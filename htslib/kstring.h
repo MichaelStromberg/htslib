@@ -153,7 +153,7 @@ static inline int kputsn(const char *p, int l, kstring_t *s)
 
 static inline int kputs(const char *p, kstring_t *s)
 {
-	return kputsn(p, strlen(p), s);
+	return kputsn(p, (int)strlen(p), s);
 }
 
 static inline int kputc(int c, kstring_t *s)
@@ -187,7 +187,7 @@ static inline int kputw(int c, kstring_t *s)
 	char buf[16];
 	int i, l = 0;
 	unsigned int x = c;
-	if (c < 0) x = -x;
+	if (c < 0) x = -c;
 	do { buf[l++] = x%10 + '0'; x /= 10; } while (x > 0);
 	if (c < 0) buf[l++] = '-';
 	if (ks_resize(s, s->l + l + 2) < 0)
@@ -216,7 +216,7 @@ static inline int kputl(long c, kstring_t *s)
 	char buf[32];
 	int i, l = 0;
 	unsigned long x = c;
-	if (c < 0) x = -x;
+	if (c < 0) x = -c;
 	do { buf[l++] = x%10 + '0'; x /= 10; } while (x > 0);
 	if (c < 0) buf[l++] = '-';
 	if (ks_resize(s, s->l + l + 2) < 0)

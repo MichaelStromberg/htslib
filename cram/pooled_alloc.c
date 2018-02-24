@@ -70,7 +70,7 @@ pool_alloc_t *pool_create(size_t dsize) {
     if (dsize < sizeof(void *))
 	dsize = sizeof(void *);
     p->dsize = dsize;
-    p->psize = MIN(PSIZE, next_power_2(p->dsize*1024));
+    p->psize = MIN(PSIZE, next_power_2((unsigned int)p->dsize*1024));
 
     p->npools = 0;
     p->pools = NULL;

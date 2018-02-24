@@ -449,9 +449,9 @@ static int bgzf_uncompress(uint8_t *dst, size_t *dlen, const uint8_t *src, size_
     zs.zfree = NULL;
     zs.msg = NULL;
     zs.next_in = (Bytef*)src;
-    zs.avail_in = slen;
+    zs.avail_in = (uint32_t)slen;
     zs.next_out = (Bytef*)dst;
-    zs.avail_out = *dlen;
+    zs.avail_out = (uint32_t)*dlen;
 
     int ret = inflateInit2(&zs, -15);
     if (ret != Z_OK) {
@@ -487,7 +487,7 @@ static int inflate_block(BGZF* fp, int block_length)
     // Check CRC of uncompressed block matches the gzip header.
     // NB: we may wish to switch out the zlib crc32 for something more performant.
     // See PR#361 and issue#467
-    uint32_t c1 = crc32(0L, (unsigned char *)fp->uncompressed_block, dlen);
+    uint32_t c1 = crc32(0L, (unsigned char *)fp->uncompressed_block, (uint32_t)dlen);
     uint32_t c2 = le_to_u32((uint8_t *)fp->compressed_block + block_length-8);
     if (c1 != c2) {
         fp->errcode |= BGZF_ERR_CRC;
@@ -695,8 +695,8 @@ int bgzf_read_block(BGZF *fp)
         // block_length=0 and block_offset set by bgzf_seek.
         if (fp->block_length != 0) fp->block_offset = 0;
         if (!j->hit_eof) fp->block_address = j->block_address;
-        fp->block_clength = j->comp_len;
-        fp->block_length = j->uncomp_len;
+        fp->block_clength = (int)j->comp_len;
+        fp->block_length = (int)j->uncomp_len;
         // bgzf_read() can change fp->block_length
         fp->last_block_eof = (fp->block_length == 0);
 
@@ -929,8 +929,8 @@ void *bgzf_encode_func(void *arg) {
     bgzf_job *j = (bgzf_job *)arg;
 
     j->comp_len = BGZF_MAX_BLOCK_SIZE;
-    int ret = bgzf_compress(j->comp_data, &j->comp_len,
-                            j->uncomp_data, j->uncomp_len,
+    int ret = bgzf_compress(j->comp_data, (int*)&j->comp_len,
+                            j->uncomp_data, (int)j->uncomp_len,
                             j->fp->compress_level);
     if (ret != 0)
         j->errcode |= BGZF_ERR_ZLIB;
@@ -1039,7 +1039,7 @@ int bgzf_mt_read_block(BGZF *fp, bgzf_job *j)
     block_address = htell(fp->fp);
 
     if (fp->cache_size && load_block_from_cache(fp, block_address)) return 0;
-    count = hpeek(fp->fp, header, sizeof(header));
+    count = (int)hpeek(fp->fp, header, sizeof(header));
     if (count == 0) // no data read
         return -1;
     int ret;
@@ -1053,7 +1053,7 @@ int bgzf_mt_read_block(BGZF *fp, bgzf_job *j)
         return -1;
     }
 
-    count = hread(fp->fp, header, sizeof(header));
+    count = (int)hread(fp->fp, header, sizeof(header));
     if (count != sizeof(header)) // no data read
         return -1;
 
@@ -1066,7 +1066,7 @@ int bgzf_mt_read_block(BGZF *fp, bgzf_job *j)
     compressed_block = (uint8_t*)j->comp_data;
     memcpy(compressed_block, header, BLOCK_HEADER_LENGTH);
     remaining = block_length - BLOCK_HEADER_LENGTH;
-    count = hread(fp->fp, &compressed_block[BLOCK_HEADER_LENGTH], remaining);
+    count = (int)hread(fp->fp, &compressed_block[BLOCK_HEADER_LENGTH], remaining);
     if (count != remaining) {
         j->errcode |= BGZF_ERR_IO;
         return -1;
@@ -1459,8 +1459,8 @@ ssize_t bgzf_block_write(BGZF *fp, const void *data, size_t length)
         current_block = fp->idx->moffs - fp->idx->noffs;
         ublock_size = fp->idx->offs[current_block+1].uaddr-fp->idx->offs[current_block].uaddr;
         uint8_t* buffer = (uint8_t*)fp->uncompressed_block;
-        int copy_length = ublock_size - fp->block_offset;
-        if (copy_length > remaining) copy_length = remaining;
+        int copy_length = (int)(ublock_size - fp->block_offset);
+        if (copy_length > remaining) copy_length = (int)remaining;
         memcpy(buffer + fp->block_offset, input, copy_length);
         fp->block_offset += copy_length;
         input += copy_length;
@@ -1818,7 +1818,7 @@ int bgzf_index_load_hfile(BGZF *fp, struct hFILE *idx, const char *name)
     uint64_t x;
     if (hread_uint64(&x, idx) < 0) goto fail;
 
-    fp->idx->noffs = fp->idx->moffs = x + 1;
+    fp->idx->noffs = fp->idx->moffs = (int)(x + 1);
     fp->idx->offs  = (bgzidx1_t*) malloc(fp->idx->moffs*sizeof(bgzidx1_t));
     if (fp->idx->offs == NULL) goto fail;
     fp->idx->offs[0].caddr = fp->idx->offs[0].uaddr = 0;
