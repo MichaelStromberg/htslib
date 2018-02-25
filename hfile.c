@@ -38,6 +38,7 @@ DEALINGS IN THE SOFTWARE.  */
 
 #ifdef _MSC_VER
 #include <signal.h>
+#include <Winsock2.h>
 #endif
 
 #ifndef ENOTSUP
@@ -845,7 +846,7 @@ char *hfile_mem_steal_buffer(hFILE *file, size_t *length) {
     return buf;
 }
 
-#ifdef BOB
+#ifndef LIGHTWEIGHT_BGZF
 int hfile_plugin_init_mem(struct hFILE_plugin *self)
 {
 
@@ -863,7 +864,7 @@ int hfile_plugin_init_mem(struct hFILE_plugin *self)
  * Plugin and hopen() backend dispatcher *
  *****************************************/
 
-#ifdef BOB
+#ifndef LIGHTWEIGHT_BGZF
 
 #include "htslib/khash.h"
 
@@ -882,7 +883,7 @@ static pthread_mutex_t plugins_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void hfile_exit()
 {
-#ifdef BOB  
+#ifndef LIGHTWEIGHT_BGZF
     pthread_mutex_lock(&plugins_lock);
 
     kh_destroy(scheme_string, schemes);
@@ -902,7 +903,7 @@ static void hfile_exit()
 #endif
 }
 
-#ifdef BOB
+#ifndef LIGHTWEIGHT_BGZF
 
 static inline int priority(const struct hFILE_scheme_handler *handler)
 {
@@ -1036,7 +1037,7 @@ static const struct hFILE_scheme_handler *find_scheme_handler(const char *s)
 
 hFILE *hopen(const char *fname, const char *mode, ...)
 {
-#ifdef BOB
+#ifndef LIGHTWEIGHT_BGZF
     const struct hFILE_scheme_handler *handler = find_scheme_handler(fname);
     if (handler) {
         if (strchr(mode, ':') == NULL
@@ -1059,7 +1060,7 @@ hFILE *hopen(const char *fname, const char *mode, ...)
     else return hopen_fd(fname, mode);
 }
 
-#ifdef BOB
+#ifndef LIGHTWEIGHT_BGZF
 
 int hfile_always_local (const char *fname) { return 0; }
 int hfile_always_remote(const char *fname) { return 1; }

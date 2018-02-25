@@ -45,7 +45,7 @@
 #include "cram/pooled_alloc.h"
 
 #ifdef _MSC_VER
-#define off_t __int64
+#include "usleep.h"
 #endif
 #define BGZF_CACHE
 #define BGZF_MT
