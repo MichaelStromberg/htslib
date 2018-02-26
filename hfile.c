@@ -39,6 +39,8 @@ DEALINGS IN THE SOFTWARE.  */
 #ifdef _MSC_VER
 #include <signal.h>
 #include <Winsock2.h>
+#include <io.h>
+#define lseek _lseeki64
 #endif
 
 #ifndef ENOTSUP

@@ -14,7 +14,6 @@
 
 #define ssize_t __int64
 #define off_t __int64
-#define lseek _lseeki64
 
 #endif // _MSC_VER
 #endif // CROSS_PLATFORM_H
